@@ -4,6 +4,7 @@ interface Env {
     JWT_SECRET: string;
     GITHUB_CLIENT_ID: string;
     GITHUB_CLIENT_SECRET: string;
+    ALLOWED_GITHUB_IDS: string;
 }
 
 const GITHUB_TOKEN_URL = 'https://github.com/login/oauth/access_token';
@@ -77,7 +78,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         if (!githubId) {
             return redirectToLogin(url.origin, '无法获取 GitHub 用户信息');
         }
+const allowedIds = (env.ALLOWED_GITHUB_IDS || '').split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
 
+if (allowedIds.length > 0 && !allowedIds.includes(githubId)) {
+    return redirectToLogin(url.origin, '无权访问，请联系管理员添加白名单');
+}
         const db = env.bgdb;
         let user = await db.prepare(
             "SELECT id, phone, nickname, avatar_url, status, github_id, github_username FROM users WHERE github_id = ?"
